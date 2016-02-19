@@ -31,6 +31,7 @@ Authors: Florian Lier, Simon Schulz
 import sys
 import time
 import signal
+import psutil
 import threading
 import subprocess
 from optparse import OptionParser
@@ -116,7 +117,14 @@ class RecordBAG(threading.Thread):
         self.process = None
 
     def stop(self):
-        self.process.send_signal(signal.SIGINT)
+	print ">>> Received STOP"
+	try:
+        	p = psutil.Process(self.process.pid)
+		for sub in p.get_children(recursive=True):
+			sub.send_signal(signal.SIGINT)
+        	self.process.send_signal(signal.SIGINT)
+	except Exception as e:
+		print ">>> Maybe the process is already dead? %s" % str(e)
 
     def run(self):
         print ">>> Recording: %s now" % self.scope
