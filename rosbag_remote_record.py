@@ -1,7 +1,6 @@
 """
 
 Copyright(c) <Florian Lier, Simon Schulz>
-http://opensource.cit-ec.de/fsmt
 
 This file may be licensed under the terms of the
 GNU Lesser General Public License Version 3 (the ``LGPL''),
@@ -45,8 +44,6 @@ import roslib
 from std_msgs.msg import Bool
 
 
-
-
 class ROSRecordConnector(threading.Thread):
 
     def __init__(self, _filename, _inscope):
@@ -72,7 +69,8 @@ class ROSRecordConnector(threading.Thread):
         ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_callback, queue_size=1)
         while self.is_running is True:
             time.sleep(0.05)
-        self.recordprocess.stop()
+	if self.recordprocess is not None:
+        	self.recordprocess.stop()
         ros_subscriber.unregister()
         print ">>> [ROS] Stopping ROSBAG REMOTE RECORD" % self.inscope.strip()
 
@@ -103,7 +101,8 @@ class RSBRecordConnector(threading.Thread):
         rsb_subscriber.addHandler(self.record_callback)
         while self.is_running is True:
             time.sleep(0.05)
-        self.recordprocess.stop()
+	if self.recordprocess is not None:
+                self.recordprocess.stop()
         self.rsb_subscriber.deactivate()
         print ">>> [RSB] Stopping ROSBAG REMOTE RECORD" % self.inscope.strip()
 
