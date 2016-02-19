@@ -72,7 +72,7 @@ class ROSRecordConnector(threading.Thread):
 	if self.recordprocess is not None:
         	self.recordprocess.stop()
         ros_subscriber.unregister()
-        print ">>> [ROS] Stopping ROSBAG REMOTE RECORD" % self.inscope.strip()
+        print ">>> [ROS] Stopping ROSBAG REMOTE RECORD %s" % self.inscope.strip()
 
 
 class RSBRecordConnector(threading.Thread):
@@ -103,8 +103,8 @@ class RSBRecordConnector(threading.Thread):
             time.sleep(0.05)
 	if self.recordprocess is not None:
                 self.recordprocess.stop()
-        self.rsb_subscriber.deactivate()
-        print ">>> [RSB] Stopping ROSBAG REMOTE RECORD" % self.inscope.strip()
+        rsb_subscriber.deactivate()
+        print ">>> [RSB] Stopping ROSBAG REMOTE RECORD %s" % self.inscope.strip()
 
 
 class RecordBAG(threading.Thread):
@@ -174,7 +174,3 @@ if __name__ == '__main__':
 
     while True:
         time.sleep(0.2)
-
-
-
-
