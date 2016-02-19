@@ -50,7 +50,7 @@ class ROSRecordConnector(threading.Thread):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
-        self.listen_topic = "/rosbagremote/record"
+        self.listen_topic = "/meka/rosbagremote/record"
         self.inscope = _inscope
         self.is_recording = False
         self.recordprocess = None
@@ -81,7 +81,7 @@ class RSBRecordConnector(threading.Thread):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
-        self.listen_scope = "/rosbagremote/record"
+        self.listen_scope = "/meka/rosbagremote/record"
         self.inscope = _inscope.strip()
         self.is_recording = False
         self.recordprocess = None
@@ -110,7 +110,6 @@ class RSBRecordConnector(threading.Thread):
 class RecordBAG(threading.Thread):
     def __init__(self, _name, _scope):
         threading.Thread.__init__(self)
-        self.stop = True
         self.name = _name.strip()
         self.scope = _scope.strip()
         self.is_recording = False
