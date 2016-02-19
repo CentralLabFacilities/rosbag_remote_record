@@ -165,8 +165,10 @@ if __name__ == '__main__':
 
     if options.middleware.lower() == "ros":
         r = ROSRecordConnector(options.filename, options.inscope)
+        r.start()
     else:
         r = RSBRecordConnector(options.filename, options.inscope)
+	r.start()
 
     signal.signal(signal.SIGINT, signal_handler)
 
