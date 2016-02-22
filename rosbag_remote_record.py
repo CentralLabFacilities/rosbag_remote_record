@@ -63,7 +63,8 @@ class ROSRecordConnector(threading.Thread):
             self.recordprocess = RecordBAG(self.filename, self.inscope)
             self.recordprocess.start()
         else:
-            self.recordprocess.stop()
+	    if self.recordprocess is not None:
+		self.recordprocess.stop()
 
     def run(self):
         print ">>> [ROS] Initializing ROSBAG REMOTE RECORD to: %s" % self.inscope.strip()
@@ -94,7 +95,8 @@ class RSBRecordConnector(threading.Thread):
             self.recordprocess = RecordBAG(self.filename, self.inscope)
             self.recordprocess.start()
         else:
-            self.recordprocess.stop()
+	    if self.recordprocess is not None:
+		self.recordprocess.stop()
 
     def run(self):
         print ">>> [RSB] Initializing ROSBAG REMOTE RECORD to: %s" % self.inscope.strip()
