@@ -67,7 +67,7 @@ class ROSRecordConnector(threading.Thread):
 		self.recordprocess.stop()
 
     def run(self):
-        print ">>> [ROS] Initializing ROSBAG REMOTE RECORD to: %s" % self.inscope.strip()
+        print ">>> [ROS] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
         ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_callback, queue_size=1)
         while self.is_running is True:
             time.sleep(0.05)
@@ -99,7 +99,7 @@ class RSBRecordConnector(threading.Thread):
 		self.recordprocess.stop()
 
     def run(self):
-        print ">>> [RSB] Initializing ROSBAG REMOTE RECORD to: %s" % self.inscope.strip()
+        print ">>> [RSB] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
         rsb_subscriber = rsb.createListener(self.listen_scope)
         rsb_subscriber.addHandler(self.record_callback)
         while self.is_running is True:
