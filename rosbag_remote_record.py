@@ -1,6 +1,6 @@
 """
 
-Copyright(c) <Florian Lier, Simon Schulz>
+Copyright(c) <Florian Lier>
 
 This file may be licensed under the terms of the
 GNU Lesser General Public License Version 3 (the ``LGPL''),
@@ -22,8 +22,8 @@ The Excellence Cluster EXC 277 is a grant of the Deutsche
 Forschungsgemeinschaft (DFG) in the context of the German
 Excellence Initiative.
 
-Authors: Florian Lier, Simon Schulz
-<flier, sschulz>@techfak.uni-bielefeld.de
+Authors: Florian Lier
+<flier>@techfak.uni-bielefeld.de
 
 """
 
@@ -63,16 +63,16 @@ class ROSRecordConnector(threading.Thread):
             self.recordprocess = RecordBAG(self.filename, self.inscope)
             self.recordprocess.start()
         else:
-	    if self.recordprocess is not None:
-		self.recordprocess.stop()
+            if self.recordprocess is not None:
+                self.recordprocess.stop()
 
     def run(self):
         print ">>> [ROS] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
         ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_callback, queue_size=1)
         while self.is_running is True:
             time.sleep(0.05)
-	if self.recordprocess is not None:
-        	self.recordprocess.stop()
+        if self.recordprocess is not None:
+                self.recordprocess.stop()
         ros_subscriber.unregister()
         print ">>> [ROS] Stopping ROSBAG REMOTE RECORD %s" % self.inscope.strip()
 
@@ -95,8 +95,8 @@ class RSBRecordConnector(threading.Thread):
             self.recordprocess = RecordBAG(self.filename, self.inscope)
             self.recordprocess.start()
         else:
-	    if self.recordprocess is not None:
-		self.recordprocess.stop()
+            if self.recordprocess is not None:
+                self.recordprocess.stop()
 
     def run(self):
         print ">>> [RSB] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
@@ -104,8 +104,8 @@ class RSBRecordConnector(threading.Thread):
         rsb_subscriber.addHandler(self.record_callback)
         while self.is_running is True:
             time.sleep(0.05)
-	if self.recordprocess is not None:
-                self.recordprocess.stop()
+        if self.recordprocess is not None:
+            self.recordprocess.stop()
         rsb_subscriber.deactivate()
         print ">>> [RSB] Stopping ROSBAG REMOTE RECORD %s" % self.inscope.strip()
 
@@ -119,14 +119,14 @@ class RecordBAG(threading.Thread):
         self.process = None
 
     def stop(self):
-	print ">>> Received STOP"
-	try:
-        	p = psutil.Process(self.process.pid)
-		for sub in p.get_children(recursive=True):
-			sub.send_signal(signal.SIGINT)
-        	self.process.send_signal(signal.SIGINT)
-	except Exception as e:
-		print ">>> Maybe the process is already dead? %s" % str(e)
+        print ">>> Received STOP"
+        try:
+            p = psutil.Process(self.process.pid)
+            for sub in p.get_children(recursive=True):
+                sub.send_signal(signal.SIGINT)
+                self.process.send_signal(signal.SIGINT)
+        except Exception as e:
+            print ">>> Maybe the process is already dead? %s" % str(e)
 
     def run(self):
         print ">>> Recording: %s now" % self.scope
@@ -177,7 +177,8 @@ if __name__ == '__main__':
         r.start()
     else:
         r = RSBRecordConnector(options.filename, options.inscope)
-	r.start()
+
+    r.start()
 
     signal.signal(signal.SIGINT, signal_handler)
 
