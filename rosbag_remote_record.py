@@ -37,12 +37,20 @@ import subprocess
 from optparse import OptionParser
 
 # RSB
-import rsb
+RSB_SUPPORT = True
+try:
+    import rsb
+except ImportError:
+    RSB_SUPPORT = False
 
 # ROS IMPORTS
-import rospy
-import roslib
-from std_msgs.msg import Bool
+ROS_SUPPORT = True
+try:
+    import rospy
+    import roslib
+    from std_msgs.msg import Bool
+except ImportError:
+    ROS_SUPPORT = False
 
 
 class ROSRecordConnector(threading.Thread):
@@ -173,12 +181,20 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if options.middleware.lower() == "ros":
-        r = ROSRecordConnector(options.filename, options.inscope)
-        r.start()
+        if ROS_SUPPORT:
+            rospy.init_node('rosbag_remote_record', anonymous=True)
+            r = ROSRecordConnector(options.filename, options.inscope)
+            r.start()
+        else:
+            print ">>> ROS import failed, ros option cannot be used."
+            sys.exit(-1)
     else:
-        r = RSBRecordConnector(options.filename, options.inscope)
-
-    r.start()
+        if RSB_SUPPORT:
+            r = RSBRecordConnector(options.filename, options.inscope)
+            r.start()
+        else:
+            print ">>> RSB import failed, rsb option cannot be used."
+            sys.exit(-1)
 
     signal.signal(signal.SIGINT, signal_handler)
 
