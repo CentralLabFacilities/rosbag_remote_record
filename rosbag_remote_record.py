@@ -76,7 +76,8 @@ class ROSRecordConnector(threading.Thread):
             self.recordprocess.start()
         else:
             if self.recordprocess is not None:
-                self.recordprocess.stop()
+                if self.recordprocess.stop():
+                    self.recordprocess = None
 
     def run(self):
         print ">>> [ROS] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
@@ -85,7 +86,7 @@ class ROSRecordConnector(threading.Thread):
         while self.is_running is True:
             time.sleep(0.05)
         if self.recordprocess is not None:
-                self.recordprocess.stop()
+            self.recordprocess.stop()
         ros_subscriber.unregister()
         print ">>> [ROS] Stopping ROSBAG REMOTE RECORD %s" % self.inscope.strip()
 
@@ -113,7 +114,8 @@ class RSBRecordConnector(threading.Thread):
             self.recordprocess.start()
         else:
             if self.recordprocess is not None:
-                self.recordprocess.stop()
+                if self.recordprocess.stop():
+                    self.recordprocess = None
 
     def run(self):
         print ">>> [RSB] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
@@ -139,11 +141,20 @@ class RecordBAG(threading.Thread):
         print ">>> Received STOP"
         try:
             p = psutil.Process(self.process.pid)
-            for sub in p.get_children(recursive=True):
-                sub.send_signal(signal.SIGINT)
-                self.process.send_signal(signal.SIGINT)
+            try:
+                for sub in p.get_children(recursive=True):
+                    sub.send_signal(signal.SIGINT)
+                    self.process.send_signal(signal.SIGINT)
+                return True
+            except AttributeError:
+                # newer psutils
+                for sub in p.children(recursive=True):
+                    sub.send_signal(signal.SIGINT)
+                    self.process.send_signal(signal.SIGINT)
+                return True
         except Exception as e:
             print ">>> Maybe the process is already dead? %s" % str(e)
+            return False
 
     def run(self):
         print ">>> Recording: %s now" % self.scope
