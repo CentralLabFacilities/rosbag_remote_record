@@ -65,7 +65,11 @@ class ROSRecordConnector(threading.Thread):
         self.recordprocess = None
 
     def record_callback(self, ros_data):
-        self.is_recording = ros_data.data
+        if (ros_data.data and self.is_recording or
+                not ros_data.data and not self.is_recording):
+            return  # already recording or already stopped
+        else:
+            self.is_recording = ros_data.data
         print ">>> [ROS] Record status: %s" % self.is_recording
         if self.is_recording is True:
             self.recordprocess = RecordBAG(self.filename, self.inscope)
@@ -77,6 +81,7 @@ class ROSRecordConnector(threading.Thread):
     def run(self):
         print ">>> [ROS] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
         ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_callback, queue_size=1)
+        print ">>> [ROS] Waiting for start on topic : %s" % self.listen_topic
         while self.is_running is True:
             time.sleep(0.05)
         if self.recordprocess is not None:
@@ -97,7 +102,11 @@ class RSBRecordConnector(threading.Thread):
         self.recordprocess = None
 
     def record_callback(self, event):
-        self.is_recording = event.data
+        if (event.data and self.is_recording or
+                not event.data and not self.is_recording):
+            return  # already recording or already stopped
+        else:
+            self.is_recording = event.data
         print ">>> [RSB] Record status: %s" % self.is_recording
         if self.is_recording is True:
             self.recordprocess = RecordBAG(self.filename, self.inscope)
