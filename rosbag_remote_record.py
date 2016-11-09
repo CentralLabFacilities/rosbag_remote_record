@@ -55,11 +55,11 @@ except ImportError:
 
 class ROSRecordConnector(threading.Thread):
 
-    def __init__(self, _filename, _inscope):
+    def __init__(self, _filename, _inscope, _triggerscope):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
-        self.listen_topic = "/meka/rosbagremote/record"
+        self.listen_topic = _triggerscope
         self.inscope = _inscope
         self.is_recording = False
         self.recordprocess = None
@@ -87,11 +87,11 @@ class ROSRecordConnector(threading.Thread):
 
 class RSBRecordConnector(threading.Thread):
 
-    def __init__(self, _filename, _inscope):
+    def __init__(self, _filename, _inscope, _triggerscope):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
-        self.listen_scope = "/meka/rosbagremote/record"
+        self.listen_scope = _triggerscope
         self.inscope = _inscope.strip()
         self.is_recording = False
         self.recordprocess = None
@@ -168,7 +168,11 @@ if __name__ == '__main__':
     parser.add_option("-i", "--inscope",
                       action="store",
                       dest="inscope",
-                      help="Set the scope/topic to record")
+                      help="Set the scopes/topics to record")
+    parser.add_option("-t", "--triggerscope",
+                      action="store",
+                      dest="triggerscope",
+                      help="Set the scope/topic for remote control (default:/meka/rosbagremote/record)")
     parser.add_option("-f", "--filename",
                       action="store",
                       dest="filename",
@@ -179,18 +183,19 @@ if __name__ == '__main__':
     if not options.filename or not options.inscope or not options.middleware:
         print ">>> No inscope, filename given or middleware provided --> see help."
         sys.exit(1)
-
+    if not options.triggerscope:
+        options.triggerscope = "/meka/rosbagremote/record"
     if options.middleware.lower() == "ros":
         if ROS_SUPPORT:
             rospy.init_node('rosbag_remote_record', anonymous=True)
-            r = ROSRecordConnector(options.filename, options.inscope)
+            r = ROSRecordConnector(options.filename, options.inscope, options.triggerscope)
             r.start()
         else:
             print ">>> ROS import failed, ros option cannot be used."
             sys.exit(-1)
     else:
         if RSB_SUPPORT:
-            r = RSBRecordConnector(options.filename, options.inscope)
+            r = RSBRecordConnector(options.filename, options.inscope, options.triggerscope)
             r.start()
         else:
             print ">>> RSB import failed, rsb option cannot be used."
