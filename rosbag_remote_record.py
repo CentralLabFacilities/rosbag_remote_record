@@ -48,7 +48,7 @@ ROS_SUPPORT = True
 try:
     import rospy
     import roslib
-    from std_msgs.msg import Bool
+    from std_msgs.msg import Bool, String
 except ImportError:
     ROS_SUPPORT = False
 
@@ -64,30 +64,58 @@ class ROSRecordConnector(threading.Thread):
         self.is_recording = False
         self.recordprocess = None
 
-    def record_callback(self, ros_data):
-        if (ros_data.data and self.is_recording or
-                not ros_data.data and not self.is_recording):
-            return  # already recording or already stopped
+    def record_string_callback(self, ros_data):
+        if ros_data.data.lower().endswith(":start"):
+            # extract filename
+            idx = ros_data.data.lower().rfind(":start")
+            newfilename = ros_data.data[0:idx]
+            if len(newfilename) > 0 and newfilename.find(' ') == -1:
+                self.record_handling(True, newfilename)
+            else:
+                print ">>> [ROS] Record filename malformed: '%s'. Should not be empty or contain spaces, using default name" % newfilename
+                self.record_handling(True, self.filename)
         else:
-            self.is_recording = ros_data.data
+            if ros_data.data.lower().endswith(":stop"):
+                self.record_handling(False)
+            else:
+                # invalid message
+                print ">>> [ROS] Record request invalid: %s. Should contain filename:start or :stop" % ros_data.data
+                return
+
+    def record_bool_callback(self, ros_data):
+        self.record_handling(ros_data.data, self.filename)
+
+    def record_handling(self, record, filename=None):
+        if (record and self.is_recording or
+                not record and not self.is_recording):
+            return False  # already recording or already stopped
+        else:
+            self.is_recording = record
         print ">>> [ROS] Record status: %s" % self.is_recording
-        if self.is_recording is True:
-            self.recordprocess = RecordBAG(self.filename, self.inscope)
+        if self.is_recording is True and filename is not None:
+            self.recordprocess = RecordBAG(filename, self.inscope)
             self.recordprocess.start()
+            return True
         else:
-            if self.recordprocess is not None:
+            if self.is_recording is False and self.recordprocess is not None:
                 if self.recordprocess.stop():
                     self.recordprocess = None
+                    return True
+                else:
+                    return False
+            return True
 
     def run(self):
         print ">>> [ROS] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
-        ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_callback, queue_size=1)
+        ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_bool_callback, queue_size=1)
+        ros_subscriber2 = rospy.Subscriber(self.listen_topic + "/named", String, self.record_string_callback, queue_size=1)
         print ">>> [ROS] Waiting for start on topic : %s" % self.listen_topic
         while self.is_running is True:
             time.sleep(0.05)
         if self.recordprocess is not None:
             self.recordprocess.stop()
         ros_subscriber.unregister()
+        ros_subscriber2.unregister()
         print ">>> [ROS] Stopping ROSBAG REMOTE RECORD %s" % self.inscope.strip()
 
 
