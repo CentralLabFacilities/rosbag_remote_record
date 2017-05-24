@@ -16,10 +16,17 @@ rostopic pub /meka/rosbagremote/record std_msgs/Bool True
 rostopic pub /meka/rosbagremote/record std_msgs/Bool False
 ```
 
+### triggering the recording start/stop with RSB
+
+```bash
+rsb-toolscl0.15 send 'true' 'socket:/meka/rosbagremote/record'
+rsb-toolscl0.15 send 'false' 'socket:/meka/rosbagremote/record'
+```
+
 Also look at:
 
 
-```bas
+```bash
 python rosbag_remote_record.py --help
 ```
 
