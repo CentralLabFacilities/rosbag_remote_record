@@ -55,13 +55,13 @@ except ImportError:
 
 class ROSRecordConnector(threading.Thread):
 
-    def __init__(self, _filename, _inscope, _triggerscope):
+    def __init__(self, _filename, _inscope, _triggerscope, _msglimit):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
         self.listen_topic = _triggerscope
         self.inscope = _inscope
-        self.is_recording = False
+        self.msglimit = _msglimit
         self.recordprocess = None
 
     def record_string_callback(self, ros_data):
@@ -86,18 +86,22 @@ class ROSRecordConnector(threading.Thread):
         self.record_handling(ros_data.data, self.filename)
 
     def record_handling(self, record, filename=None):
-        if (record and self.is_recording or
-                not record and not self.is_recording):
-            return False  # already recording or already stopped
+        if (record and self.recordprocess is not None and self.recordprocess.is_recording):
+          return False # already recording 
+
+        if (not record and self.recordprocess is None):
+            return False  # already stopped
+        if self.recordprocess is not None:
+          print ">>> [ROS] Record status: %s" % str(self.recordprocess.is_recording)
         else:
-            self.is_recording = record
-        print ">>> [ROS] Record status: %s" % self.is_recording
-        if self.is_recording is True and filename is not None:
-            self.recordprocess = RecordBAG(filename, self.inscope)
+          print ">>> [ROS] Record status: %s" % False
+          
+        if record and filename is not None:
+            self.recordprocess = RecordBAG(filename, self.inscope, self.msglimit)
             self.recordprocess.start()
             return True
         else:
-            if self.is_recording is False and self.recordprocess is not None:
+            if self.recordprocess is not None:
                 if self.recordprocess.stop():
                     self.recordprocess = None
                     return True
@@ -109,7 +113,8 @@ class ROSRecordConnector(threading.Thread):
         print ">>> [ROS] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
         ros_subscriber = rospy.Subscriber(self.listen_topic, Bool, self.record_bool_callback, queue_size=1)
         ros_subscriber2 = rospy.Subscriber(self.listen_topic + "/named", String, self.record_string_callback, queue_size=1)
-        print ">>> [ROS] Waiting for start on topic : %s" % self.listen_topic
+        print ">>> [ROS] Waiting for Bool (true for start) on topic : %s" % self.listen_topic
+        print ">>> [ROS] Waiting for filename:start on topic : %s" % self.listen_topic + "/named"
         while self.is_running is True:
             time.sleep(0.05)
         if self.recordprocess is not None:
@@ -121,29 +126,38 @@ class ROSRecordConnector(threading.Thread):
 
 class RSBRecordConnector(threading.Thread):
 
-    def __init__(self, _filename, _inscope, _triggerscope):
+    def __init__(self, _filename, _inscope, _triggerscope, _msglimit):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
         self.listen_scope = _triggerscope
         self.inscope = _inscope.strip()
-        self.is_recording = False
+        self.msglimit = _msglimit
         self.recordprocess = None
 
     def record_callback(self, event):
-        if (event.data and self.is_recording or
-                not event.data and not self.is_recording):
-            return  # already recording or already stopped
+        if (event.data and self.recordprocess is not None and self.recordprocess.is_recording):
+          return False # already recording 
+
+        if (not event.data and self.recordprocess is None):
+            return False  # already stopped
+        if self.recordprocess is not None:
+          print ">>> [RSB] Record status: %s" % str(self.recordprocess.is_recording)
         else:
-            self.is_recording = event.data
-        print ">>> [RSB] Record status: %s" % self.is_recording
-        if self.is_recording is True:
-            self.recordprocess = RecordBAG(self.filename, self.inscope)
+          print ">>> [RSB] Record status: %s" % False
+          
+        if event.data:
+            self.recordprocess = RecordBAG(self.filename, self.inscope, self.msglimit)
             self.recordprocess.start()
+            return True
         else:
             if self.recordprocess is not None:
                 if self.recordprocess.stop():
                     self.recordprocess = None
+                    return True
+                else:
+                    return False
+            return True
 
     def run(self):
         print ">>> [RSB] Initializing ROSBAG REMOTE RECORD of: %s" % self.inscope.strip()
@@ -158,15 +172,20 @@ class RSBRecordConnector(threading.Thread):
 
 
 class RecordBAG(threading.Thread):
-    def __init__(self, _name, _scope):
+    def __init__(self, _name, _scope, _msg_limit=None):
         threading.Thread.__init__(self)
         self.name = _name.strip()
         self.scope = _scope.strip()
         self.is_recording = False
         self.process = None
+        self.msg_limit = _msg_limit
 
     def stop(self):
         print ">>> Received STOP"
+        if not self.is_recording:
+          print ">>> Already stopped"
+          return True
+        self.is_recording = False
         try:
             p = psutil.Process(self.process.pid)
             try:
@@ -187,9 +206,16 @@ class RecordBAG(threading.Thread):
     def run(self):
         print ">>> Recording: %s now" % self.scope
         print ">>> Filename:  %s-%s.bag %s" % (self.name, str(time.time()), self.scope)
-        self.process = subprocess.Popen("rosbag record -O %s-%s.bag %s" % (self.name, str(time.time()), self.scope), shell=True)
+        
+        if self.msg_limit is not None:
+          print ">>> stopping after %s messages" % str(self.msg_limit)
+          self.process = subprocess.Popen("rosbag record -l %s -O %s-%s.bag %s" % (str(self.msg_limit), self.name, str(time.time()), self.scope), shell=True)
+        else:
+          self.process = subprocess.Popen("rosbag record -O %s-%s.bag %s" % (self.name, str(time.time()), self.scope), shell=True)
+        self.is_recording = True
         self.process.wait()
         print ">>> Recording: %s stopped" % self.scope
+        self.is_recording = False
 
 
 def signal_handler(sig, frame):
@@ -220,11 +246,16 @@ if __name__ == '__main__':
     parser.add_option("-t", "--triggerscope",
                       action="store",
                       dest="triggerscope",
-                      help="Set the scope/topic for remote control (default:/meka/rosbagremote/record)")
+                      help="Set the root scope/topic for remote control (default:/meka/rosbagremote/record)\
+                       another topic <root>/named provides a way to query a new bag file name while starting")
     parser.add_option("-f", "--filename",
                       action="store",
                       dest="filename",
                       help="The name of the file that is saved")
+    parser.add_option("-l", "--limit",
+                      action="store",
+                      dest="msglimit",
+                      help="The number of message to record before automatically stopping")
 
     (options, args) = parser.parse_args()
 
@@ -236,14 +267,14 @@ if __name__ == '__main__':
     if options.middleware.lower() == "ros":
         if ROS_SUPPORT:
             rospy.init_node('rosbag_remote_record', anonymous=True)
-            r = ROSRecordConnector(options.filename, options.inscope, options.triggerscope)
+            r = ROSRecordConnector(options.filename, options.inscope, options.triggerscope, options.msglimit)
             r.start()
         else:
             print ">>> ROS import failed, ros option cannot be used."
             sys.exit(-1)
     else:
         if RSB_SUPPORT:
-            r = RSBRecordConnector(options.filename, options.inscope, options.triggerscope)
+            r = RSBRecordConnector(options.filename, options.inscope, options.triggerscope, options.msglimit)
             r.start()
         else:
             print ">>> RSB import failed, rsb option cannot be used."
