@@ -44,7 +44,11 @@ for user specified Remote Listen Scope/Topic use -t option
 ### Default mode (ROS and RSB)
 
   * Simply send a Bool value [ true = start recording | false = stop recording] to the above topic/scope
-  
+
+### Message limit
+
+option -l NUM permits to limit recording NUM message in the rosbag, and automatically stopping (no need to send a stop command, although stop can still stop before NUM messages were received)
+
 ### Advanced mode (only in ROS now)
 
   * Filename can be specified for each start/stop operation
