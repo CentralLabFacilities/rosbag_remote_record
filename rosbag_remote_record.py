@@ -29,6 +29,7 @@ Authors: Florian Lier
 
 # STD IMPORTS
 import sys
+import os
 import time
 import signal
 import psutil
@@ -59,6 +60,9 @@ class ROSRecordConnector(threading.Thread):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
+        (self.directory, self.basename) = os.path.split(self.filename)
+        if self.directory != "":
+            self.directory = self.directory + "/"
         self.listen_topic = _triggerscope
         self.inscope = _inscope
         self.msglimit = _msglimit
@@ -70,10 +74,10 @@ class ROSRecordConnector(threading.Thread):
             idx = ros_data.data.lower().rfind(":start")
             newfilename = ros_data.data[0:idx]
             if len(newfilename) > 0 and newfilename.find(' ') == -1:
-                self.record_handling(True, newfilename)
+                self.record_handling(True, self.directory + newfilename)
             else:
                 print ">>> [ROS] Record filename malformed: '%s'. Should not be empty or contain spaces, using default name" % newfilename
-                self.record_handling(True, self.filename)
+                self.record_handling(True, self.directory + self.basename)
         else:
             if ros_data.data.lower().endswith(":stop"):
                 self.record_handling(False)
@@ -83,7 +87,7 @@ class ROSRecordConnector(threading.Thread):
                 return
 
     def record_bool_callback(self, ros_data):
-        self.record_handling(ros_data.data, self.filename)
+        self.record_handling(ros_data.data, self.directory + self.basename)
 
     def record_handling(self, record, filename=None):
         if (record and self.recordprocess is not None and self.recordprocess.is_recording):
@@ -205,8 +209,7 @@ class RecordBAG(threading.Thread):
 
     def run(self):
         print ">>> Recording: %s now" % self.scope
-        print ">>> Filename:  %s-%s.bag %s" % (self.name, str(time.time()), self.scope)
-        
+        print ">>> Filename:  %s-%s.bag" % (self.name, str(time.time()))        
         if self.msg_limit is not None:
           print ">>> stopping after %s messages" % str(self.msg_limit)
           self.process = subprocess.Popen("rosbag record -l %s -O %s-%s.bag %s" % (str(self.msg_limit), self.name, str(time.time()), self.scope), shell=True)
