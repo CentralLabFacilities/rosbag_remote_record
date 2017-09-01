@@ -56,13 +56,16 @@ except ImportError:
 
 class ROSRecordConnector(threading.Thread):
 
-    def __init__(self, _filename, _inscope, _triggerscope, _msglimit):
+    def __init__(self, _filename, _inscope, _triggerscope, _msglimit, _directory=None):
         threading.Thread.__init__(self)
         self.is_running = True
         self.filename = _filename.strip()
-        (self.directory, self.basename) = os.path.split(self.filename)
-        if self.directory != "":
-            self.directory = self.directory + "/"
+        if _directory is None:
+            self.directory = ""
+        else:
+            self.directory = _directory.strip()
+            if self.directory != "":
+                self.directory = self.directory + "/"
         self.listen_topic = _triggerscope
         self.inscope = _inscope
         self.msglimit = _msglimit
@@ -77,7 +80,7 @@ class ROSRecordConnector(threading.Thread):
                 self.record_handling(True, self.directory + newfilename)
             else:
                 print ">>> [ROS] Record filename malformed: '%s'. Should not be empty or contain spaces, using default name" % newfilename
-                self.record_handling(True, self.directory + self.basename)
+                self.record_handling(True, self.directory + self.filename)
         else:
             if ros_data.data.lower().endswith(":stop"):
                 self.record_handling(False)
@@ -87,7 +90,7 @@ class ROSRecordConnector(threading.Thread):
                 return
 
     def record_bool_callback(self, ros_data):
-        self.record_handling(ros_data.data, self.directory + self.basename)
+        self.record_handling(ros_data.data, self.filename)
 
     def record_handling(self, record, filename=None):
         if (record and self.recordprocess is not None and self.recordprocess.is_recording):
@@ -209,12 +212,13 @@ class RecordBAG(threading.Thread):
 
     def run(self):
         print ">>> Recording: %s now" % self.scope
-        print ">>> Filename:  %s-%s.bag" % (self.name, str(time.time()))        
+        rosbag_filename = self.name + "-" + str(time.time()) + ".bag"
+        print ">>> Filename:  %s" % rosbag_filename
         if self.msg_limit is not None:
           print ">>> stopping after %s messages" % str(self.msg_limit)
-          self.process = subprocess.Popen("rosbag record -l %s -O %s-%s.bag %s" % (str(self.msg_limit), self.name, str(time.time()), self.scope), shell=True)
+          self.process = subprocess.Popen("rosbag record -l %s -O %s %s" % (str(self.msg_limit), rosbag_filename, self.scope), shell=True)
         else:
-          self.process = subprocess.Popen("rosbag record -O %s-%s.bag %s" % (self.name, str(time.time()), self.scope), shell=True)
+          self.process = subprocess.Popen("rosbag record -O %s %s" % (rosbag_filename, self.scope), shell=True)
         self.is_recording = True
         self.process.wait()
         print ">>> Recording: %s stopped" % self.scope
@@ -255,6 +259,10 @@ if __name__ == '__main__':
                       action="store",
                       dest="filename",
                       help="The name of the file that is saved")
+    parser.add_option("-d", "--directory",
+                      action="store",
+                      dest="directory",
+                      help="(only for named trigger) the base directory in which the files should be saved")
     parser.add_option("-l", "--limit",
                       action="store",
                       dest="msglimit",
@@ -270,7 +278,7 @@ if __name__ == '__main__':
     if options.middleware.lower() == "ros":
         if ROS_SUPPORT:
             rospy.init_node('rosbag_remote_record', anonymous=True)
-            r = ROSRecordConnector(options.filename, options.inscope, options.triggerscope, options.msglimit)
+            r = ROSRecordConnector(options.filename, options.inscope, options.triggerscope, options.msglimit, options.directory)
             r.start()
         else:
             print ">>> ROS import failed, ros option cannot be used."

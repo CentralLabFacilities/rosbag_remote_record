@@ -53,6 +53,8 @@ option -l NUM permits to limit recording NUM message in the rosbag, and automati
 
   * Filename can be specified for each start/stop operation
   * Use a String value containing [ filename:start | filename:stop ] to the extended trigger topic/scope, to be start/stop recording file called filename
+  * Either give the fullpath in the string (-f will then be ignored)
+  * Or give the filename only or partial path and provide a base directory with -d option which is prepended to the filename
   * the extended trigger topic/scope is the standard topic with ```/named``` at the end
 
 ```bash
